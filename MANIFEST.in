@@ -1,0 +1,7 @@
+include README.md
+include requirements.txt
+include LICENSE
+recursive-include embeddings_evaluator *.py
+exclude faiss_embeddings/*
+exclude model_comparison.png
+exclude test_similarity_distribution.py

@@ -1,28 +1,14 @@
 from .metrics import (
-    mean_cosine_similarity,
-    intrinsic_dimensionality,
-    silhouette_avg,
+    pairwise_similarities,
     get_all_metrics
 )
 
 from .comparison import (
-    evaluate_embeddings,
-    plot_metrics,
-    plot_interactive_scatter,
-    plot_similarity_heatmap,
-    plot_intrinsic_dimensionality,
-    compare_all_metric_distributions
+    plot_model_comparison
 )
 
 __all__ = [
-    'mean_cosine_similarity',
-    'intrinsic_dimensionality',
-    'silhouette_avg',
+    'pairwise_similarities',
     'get_all_metrics',
-    'evaluate_embeddings',
-    'plot_metrics',
-    'plot_interactive_scatter',
-    'plot_similarity_heatmap',
-    'plot_intrinsic_dimensionality',
-    'compare_all_metric_distributions'
+    'plot_model_comparison'
 ]

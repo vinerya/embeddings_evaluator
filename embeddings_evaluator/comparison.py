@@ -1,212 +1,78 @@
 import pandas as pd
 import numpy as np
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from umap import UMAP
-from .metrics import get_all_metrics
-from scipy.spatial.distance import pdist, squareform
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+from .metrics import pairwise_similarities
 
-def evaluate_embeddings(embeddings, label=None):
+def find_peak(similarities):
+    """Find the peak of the distribution and its location."""
+    kde = gaussian_kde(similarities)
+    x_range = np.linspace(min(similarities), max(similarities), 200)
+    density = kde(x_range)
+    peak_idx = np.argmax(density)
+    return x_range[peak_idx], density[peak_idx]
+
+def plot_model_comparison(embeddings_dict):
     """
-    Evaluate a single set of embeddings or multiple sets of embeddings.
-
-    Parameters:
-    embeddings (np.ndarray or list of np.ndarray): Embeddings to evaluate.
-    label (str or list of str, optional): Label(s) for the embeddings.
-
-    Returns:
-    pd.DataFrame: A DataFrame containing the metrics for each embedding.
-    """
-    if isinstance(embeddings, list):
-        results = []
-        labels = label if isinstance(label, list) else [f"Embedding {i+1}" for i in range(len(embeddings))]
-        for emb, lbl in zip(embeddings, labels):
-            metrics = get_all_metrics(emb)
-            metrics['label'] = lbl
-            results.append(metrics)
-        return pd.DataFrame(results)
-    else:
-        metrics = get_all_metrics(embeddings)
-        metrics['label'] = label if label else "Embedding"
-        return pd.DataFrame([metrics])
-
-def plot_metrics(df):
-    """
-    Plot all metrics from the DataFrame using line plots.
-
-    Parameters:
-    df (pd.DataFrame): DataFrame containing the metrics for each embedding.
-
-    Returns:
-    plotly.graph_objs._figure.Figure: An interactive Plotly figure.
-    """
-    metrics = [col for col in df.columns if col != 'label']
-    num_metrics = len(metrics)
-    rows = (num_metrics + 1) // 2
-    cols = 2
-
-    fig = make_subplots(rows=rows, cols=cols, subplot_titles=metrics)
-
-    for i, metric in enumerate(metrics):
-        row = i // 2 + 1
-        col = i % 2 + 1
-        
-        trace = go.Scatter(x=df['label'], y=df[metric], mode='lines+markers', name=metric)
-        fig.add_trace(trace, row=row, col=col)
-
-        fig.update_xaxes(title_text="Embeddings", row=row, col=col)
-        fig.update_yaxes(title_text=metric, row=row, col=col)
-
-    fig.update_layout(height=300*rows, width=1000, title_text="Comparison of Embedding Metrics")
-    return fig
-
-def plot_interactive_scatter(embeddings, labels, method='pca', dimensions=2):
-    """
-    Create an interactive scatter plot of the embeddings using the specified dimensionality reduction method.
-
-    Parameters:
-    embeddings (np.ndarray): The embeddings to visualize.
-    labels (list): List of labels corresponding to each embedding point.
-    method (str): Dimensionality reduction method. Options: 'pca', 'tsne', 'umap'. Default is 'pca'.
-    dimensions (int): Number of dimensions for the plot. Options: 2 or 3. Default is 2.
-
-    Returns:
-    plotly.graph_objs._figure.Figure: An interactive Plotly figure.
-    """
-    if method == 'pca':
-        reducer = PCA(n_components=dimensions)
-    elif method == 'tsne':
-        reducer = TSNE(n_components=dimensions, random_state=42)
-    elif method == 'umap':
-        reducer = UMAP(n_components=dimensions, random_state=42)
-    else:
-        raise ValueError("Invalid method. Choose 'pca', 'tsne', or 'umap'.")
-
-    reduced_embeddings = reducer.fit_transform(embeddings)
-
-    # Create a color map for the labels
-    unique_labels = list(set(labels))
-    color_map = {label: f'rgb({(hash(label) & 0xFF)},{(hash(label) >> 8 & 0xFF)},{(hash(label) >> 16 & 0xFF)})' for label in unique_labels}
-    colors = [color_map[label] for label in labels]
-
-    if dimensions == 2:
-        df = pd.DataFrame(reduced_embeddings, columns=['Dim1', 'Dim2'])
-        fig = go.Figure(data=go.Scatter(x=df['Dim1'], y=df['Dim2'], mode='markers',
-                                        marker=dict(color=colors),
-                                        text=labels,
-                                        hoverinfo='text'))
-        fig.update_layout(title=f'2D Projection of Embeddings ({method.upper()})',
-                          xaxis_title='Dimension 1',
-                          yaxis_title='Dimension 2')
-    elif dimensions == 3:
-        df = pd.DataFrame(reduced_embeddings, columns=['Dim1', 'Dim2', 'Dim3'])
-        fig = go.Figure(data=go.Scatter3d(x=df['Dim1'], y=df['Dim2'], z=df['Dim3'],
-                                          mode='markers',
-                                          marker=dict(color=colors, size=5),
-                                          text=labels,
-                                          hoverinfo='text'))
-        fig.update_layout(title=f'3D Projection of Embeddings ({method.upper()})',
-                          scene=dict(xaxis_title='Dimension 1',
-                                     yaxis_title='Dimension 2',
-                                     zaxis_title='Dimension 3'))
-    else:
-        raise ValueError("Invalid dimensions. Choose 2 or 3.")
-
-    return fig
-
-def plot_similarity_heatmap(embeddings, labels):
-    """
-    Plot a heatmap of pairwise similarities between embeddings.
-
-    Parameters:
-    embeddings (np.ndarray): The embeddings to visualize.
-    labels (list): List of labels corresponding to each embedding point.
-
-    Returns:
-    plotly.graph_objs._figure.Figure: An interactive Plotly figure.
-    """
-    similarities = 1 - pdist(embeddings, metric='cosine')
-    similarities = squareform(similarities)
-    fig = go.Figure(data=go.Heatmap(z=similarities, x=labels, y=labels))
-    fig.update_layout(title='Pairwise Similarity Heatmap')
-    return fig
-
-def plot_intrinsic_dimensionality(embeddings, max_dims=100):
-    """
-    Plot the intrinsic dimensionality estimation.
-
-    Parameters:
-    embeddings (np.ndarray): The embeddings to analyze.
-    max_dims (int): Maximum number of dimensions to consider.
-
-    Returns:
-    plotly.graph_objs._figure.Figure: An interactive Plotly figure.
-    """
-    from .metrics import intrinsic_dimensionality
+    Create visualization comparing pairwise cosine similarity distributions of multiple models.
     
-    dims = list(range(1, min(embeddings.shape[1], max_dims) + 1))
-    id_values = [intrinsic_dimensionality(embeddings[:, :d]) for d in dims]
-    
-    fig = go.Figure(data=go.Scatter(x=dims, y=id_values, mode='lines+markers'))
-    fig.update_layout(title='Intrinsic Dimensionality Estimation',
-                      xaxis_title='Number of Dimensions',
-                      yaxis_title='Estimated Intrinsic Dimensionality')
-    return fig
-
-def compare_all_metric_distributions(embeddings_list, labels):
-    """
-    Compare the distributions of all metrics across multiple embedding sets.
-
     Parameters:
-    embeddings_list (list of np.ndarray): List of embedding sets to compare.
-    labels (list of str): Labels for each embedding set.
-
-    Returns:
-    dict: A dictionary of Plotly figures, one for each metric.
+    embeddings_dict: dict of {model_name: embeddings_array}
     """
-    from .metrics import mean_cosine_similarity, intrinsic_dimensionality, silhouette_avg
+    # Set up colors
+    colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
     
-    metrics = {
-        "Mean Cosine Similarity": mean_cosine_similarity,
-        "Intrinsic Dimensionality": intrinsic_dimensionality,
-        "Silhouette Score": silhouette_avg
-    }
+    # Calculate statistics for all models
+    stats = {}
+    for name, embeddings in embeddings_dict.items():
+        similarities = pairwise_similarities(embeddings)
+        peak_x, peak_y = find_peak(similarities)
+        stats[name] = {
+            'similarities': similarities,
+            'mean': np.mean(similarities),
+            'std': np.std(similarities),
+            'median': np.median(similarities),
+            'peak_x': peak_x,
+            'peak_y': peak_y
+        }
     
-    return {name: compare_metric_distributions(embeddings_list, labels, func, name)
-            for name, func in metrics.items()}
-
-def compare_metric_distributions(embeddings_list, labels, metric_func, metric_name):
-    """
-    Compare the distributions of a specific metric across multiple embedding sets.
-
-    Parameters:
-    embeddings_list (list of np.ndarray): List of embedding sets to compare.
-    labels (list of str): Labels for each embedding set.
-    metric_func (function): Function to compute the metric for each embedding.
-    metric_name (str): Name of the metric being compared.
-
-    Returns:
-    plotly.graph_objs._figure.Figure: An interactive Plotly figure showing the distribution comparison.
-    """
-    fig = go.Figure()
-    for embeddings, label in zip(embeddings_list, labels):
-        metric_values = metric_func(embeddings)
-        
-        if np.isscalar(metric_values):
-            # If it's a single value, create a bar instead of a distribution
-            fig.add_trace(go.Bar(x=[label], y=[metric_values], name=label))
-        else:
-            # If it's an array, create a box plot
-            fig.add_trace(go.Box(y=metric_values, name=label))
+    # Create figure
+    plt.figure(figsize=(15, 8))
     
-    if np.isscalar(metric_values):
-        fig.update_layout(title=f'Comparison of {metric_name} Across Embedding Sets',
-                          xaxis_title='Embedding Set',
-                          yaxis_title=metric_name)
-    else:
-        fig.update_layout(title=f'Distribution of {metric_name} Across Embedding Sets',
-                          xaxis_title='Embedding Set',
-                          yaxis_title=metric_name)
-    return fig
+    # Plot histograms
+    for (name, model_stats), color in zip(stats.items(), colors):
+        plt.hist(model_stats['similarities'], bins=50, alpha=0.6, density=True, 
+                color=color,
+                label=f'{name} (μ={model_stats["mean"]:.3f}, σ={model_stats["std"]:.3f}, m={model_stats["median"]:.3f})')
+        # Add vertical line for mean
+        plt.axvline(model_stats['mean'], color=color, linestyle='--', alpha=0.5)
+    
+    # Customize plot
+    plt.title('Pairwise Cosine Similarity Distributions')
+    plt.xlabel('Cosine Similarity')
+    plt.ylabel('Density')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.grid(True, alpha=0.3)
+    
+    # Add peak information
+    peak_text = "Peak (cos_sim, amplitude):\n"
+    for name, model_stats in stats.items():
+        peak_text += f"{name}: ({model_stats['peak_x']:.3f}, {model_stats['peak_y']:.3f})\n"
+    
+    plt.text(0.02, 0.98, peak_text,
+             transform=plt.gca().transAxes,
+             verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    # Set x-axis limits to [0, 1] for cosine similarity
+    plt.xlim(0, 1)
+    
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout()
+    
+    return plt.gcf()
+
+def save_comparison_plot(fig, filename):
+    """Save the comparison plot to a file."""
+    fig.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close(fig)
