@@ -84,6 +84,7 @@ The tool provides:
 - Peak coordinates
 - Vertical lines at mean values
 - [0,1] bounded cosine similarity range
+![59916fdb-2f68-4c45-844f-32cb84485d48](https://github.com/user-attachments/assets/375978d2-b163-4314-b540-52885e67e877)
 
 ## Requirements
 
