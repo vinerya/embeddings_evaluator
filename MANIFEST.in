@@ -1,7 +1,9 @@
 include README.md
 include requirements.txt
 include LICENSE
+include .env.example
 recursive-include embeddings_evaluator *.py
-exclude faiss_embeddings/*
-exclude model_comparison.png
-exclude test_similarity_distribution.py
+exclude examples/*
+exclude scripts/*
+exclude outputs/*
+exclude docs/*

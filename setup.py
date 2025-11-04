@@ -14,14 +14,16 @@ setup(
     author="Moudather Chelbi",
     author_email="moudather.chelbi@gmail.com",
     url="https://github.com/vinerya/embeddings_evaluator",
-    packages=find_packages(),
+    packages=find_packages(exclude=["examples", "examples.*", "scripts", "scripts.*", "outputs", "outputs.*", "docs", "docs.*"]),
     install_requires=[
         "numpy>=1.23.5",
         "pandas>=1.5.3",
         "plotly>=5.14.1",
         "scipy>=1.10.1",
+        "scikit-learn>=1.2.0",
         "faiss-cpu",
-        "matplotlib"
+        "qdrant-client>=1.7.0",
+        "matplotlib>=3.5.0"
     ],
     python_requires=">=3.8",
     classifiers=[
