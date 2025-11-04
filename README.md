@@ -20,19 +20,19 @@ A Python package for analyzing and comparing embedding models through pairwise c
 
 When your pairwise similarity distribution is **biased toward 0** (low similarity), it indicates:
 
-✅ **High Discriminative Power**: Documents are well-separated in embedding space
-✅ **Distinct Representations**: Each document has a unique semantic signature
-✅ **Better Retrieval Precision**: Top-k results are genuinely the most relevant, not just "everything is somewhat similar"
-✅ **Reduced Noise**: Fewer false positives in retrieval results
+- ✅ **High Discriminative Power**: Documents are well-separated in embedding space
+- ✅ **Distinct Representations**: Each document has a unique semantic signature
+- ✅ **Better Retrieval Precision**: Top-k results are genuinely the most relevant, not just "everything is somewhat similar"
+- ✅ **Reduced Noise**: Fewer false positives in retrieval results
 
 ### The Problem with High Similarity Distributions
 
 If most pairwise similarities are high (biased toward 1):
 
-❌ **Poor Separation**: Documents cluster together in embedding space
-❌ **Ambiguous Retrieval**: Hard to distinguish between relevant and irrelevant content
-❌ **Noisy Results**: Many false positives that "look similar" but aren't truly relevant
-❌ **Redundant Context**: Retrieved chunks may be too similar to each other
+- ❌ **Poor Separation**: Documents cluster together in embedding space
+- ❌ **Ambiguous Retrieval**: Hard to distinguish between relevant and irrelevant content
+- ❌ **Noisy Results**: Many false positives that "look similar" but aren't truly relevant
+- ❌ **Redundant Context**: Retrieved chunks may be too similar to each other
 
 ### Interpreting Results for RAG
 
