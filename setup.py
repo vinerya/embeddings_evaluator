@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="embeddings_evaluator",
-    version="1.0.0",
+    version="1.0.1",
     description="Tool for analyzing and comparing embedding models through pairwise cosine similarity distributions",
     long_description=long_description,
     long_description_content_type="text/markdown",
